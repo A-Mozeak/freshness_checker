@@ -1,0 +1,7 @@
+{
+  "name": "Freshness Checker AI",
+  "description": "An AI-powered app to check if your food is spoiled using image recognition, view examples of spoiled food, and check for FDA recalls.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
