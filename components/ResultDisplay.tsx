@@ -145,6 +145,8 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ analysis, spoiledImages, 
   const getStatusColor = () => {
     switch(analysis.isSpoiled) {
       case 'Fresh': return 'text-green-400 border-green-400';
+      case 'Still Good': return 'text-green-300 border-green-300';
+      case 'Eat Soon': return 'text-orange-400 border-orange-400';
       case 'Spoiled': return 'text-red-400 border-red-400';
       case 'Unsure': return 'text-yellow-400 border-yellow-400';
       default: return 'text-slate-400 border-slate-400';
@@ -177,7 +179,7 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ analysis, spoiledImages, 
         </div>
         <p className="text-lg font-semibold text-white">Identified Food: <span className="font-bold">{analysis.foodName}</span></p>
         <p className="text-slate-300 mt-2">{analysis.explanation}</p>
-        {analysis.isSpoiled === 'Unsure' && (
+        {(analysis.isSpoiled === 'Unsure' || analysis.isSpoiled === 'Eat Soon') && analysis.sensoryChecks && (
           <div className="mt-4 p-4 bg-slate-700 rounded-lg">
             <h3 className="font-bold text-yellow-300">How to Check Manually</h3>
             <p className="text-slate-300 mt-1">{analysis.sensoryChecks}</p>
@@ -262,43 +264,43 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ analysis, spoiledImages, 
 
       {/* FDA Recalls */}
       <div className="bg-slate-800 p-6 rounded-xl shadow-lg">
-        <h3 className="text-xl font-bold text-cyan-300 mb-4">FDA Recall Information</h3>
+        <h3 className="text-xl font-bold text-cyan-300 mb-2">FDA Recall Check</h3>
+        <p className="text-slate-400 mb-4">Recent recalls related to "{analysis.foodName}" from the last year.</p>
         {recalls.length > 0 ? (
           <ul className="space-y-4">
-            {recalls.map((recall) => (
-              <li key={recall.recall_number} className="bg-slate-700 rounded-lg hover:bg-slate-600/50 transition-colors">
-                <a
-                  href={`https://www.google.com/search?q=site:fda.gov+${encodeURIComponent(analysis.foodName)}+${encodeURIComponent(recall.recalling_firm)}+${encodeURIComponent(recall.reason_for_recall)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block p-4"
-                  aria-label={`View details for recall of ${recall.product_description}`}
+            {recalls.map(recall => (
+              <li key={recall.recall_number} className="bg-slate-700 p-4 rounded-lg">
+                <p className="font-bold text-white">
+                    <HighlightText text={smartTruncate(recall.product_description, analysis.foodName.split(' ')[0])} highlight={analysis.foodName.split(' ')[0]} />
+                </p>
+                <p className="text-sm text-red-300 mt-1">
+                  <span className="font-semibold text-slate-300">Reason:</span>{' '}
+                  <HighlightText text={smartTruncate(recall.reason_for_recall, 'allerg')} highlight={'allerg'} />
+                </p>
+                <p className="text-xs text-slate-400 mt-2">{recall.recalling_firm} | Recall Date: {recall.recall_initiation_date}</p>
+                <a 
+                    href={`https://www.google.com/search?q=FDA+recall+${recall.recall_number}+${encodeURIComponent(recall.product_description)}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center text-cyan-400 hover:text-cyan-300 hover:underline text-sm"
                 >
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <p className="font-bold text-red-400">
-                         <HighlightText text={smartTruncate(recall.product_description, analysis.foodName.split(' ')[0])} highlight={analysis.foodName.split(' ')[0]} />
-                      </p>
-                      <p className="text-sm mt-2"><span className="font-semibold text-slate-300">Reason:</span> {recall.reason_for_recall}</p>
-                      <p className="text-sm"><span className="font-semibold text-slate-300">Recalled by:</span> {recall.recalling_firm}</p>
-                      <p className="text-sm"><span className="font-semibold text-slate-300">Date:</span> {new Date(recall.recall_initiation_date.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')).toLocaleDateString()}</p>
-                    </div>
+                    Find out more
                     <ExternalLinkIcon />
-                  </div>
                 </a>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-slate-400">No recent recalls found for "{analysis.foodName}" in the FDA database.</p>
+          <p className="text-slate-300">No recent FDA recalls found for "{analysis.foodName}".</p>
         )}
       </div>
 
-      <div className="text-center">
-        <button onClick={onReset} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg">
-          Check Another Item
-        </button>
-      </div>
+       {/* Reset Button */}
+       <div className="text-center">
+         <button onClick={onReset} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-8 rounded-lg text-lg transition-transform transform hover:scale-105">
+           Check Another Item
+         </button>
+       </div>
     </div>
   );
 };

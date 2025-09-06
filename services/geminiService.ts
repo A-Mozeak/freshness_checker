@@ -13,9 +13,9 @@ const analysisSchema = {
   type: Type.OBJECT,
   properties: {
     foodName: { type: Type.STRING, description: "The name of the food item in the image, or 'No food detected' if none is found." },
-    isSpoiled: { type: Type.STRING, enum: ['Fresh', 'Spoiled', 'Unsure', 'N/A'], description: "The freshness status of the food, or 'N/A' if no food is detected." },
-    explanation: { type: Type.STRING, description: "A detailed explanation of the freshness assessment, or why no food was detected." },
-    sensoryChecks: { type: Type.STRING, description: "If unsure, detailed advice on checking for spoilage using smell, texture, and visual cues (not from the image). If no food is detected, this can be an empty string." },
+    isSpoiled: { type: Type.STRING, enum: ['Fresh', 'Still Good', 'Eat Soon', 'Spoiled', 'Unsure', 'N/A'], description: "The freshness status of the food, or 'N/A' if no food is detected." },
+    explanation: { type: Type.STRING, description: "A detailed explanation of the freshness assessment, pointing out specific visual evidence. If no food is detected, explain what is seen instead." },
+    sensoryChecks: { type: Type.STRING, description: "If status is 'Unsure' or 'Eat Soon', provide detailed advice on checking for spoilage using smell, texture, and visual cues (not from the image). Otherwise, this can be an empty string." },
   },
   required: ['foodName', 'isSpoiled', 'explanation', 'sensoryChecks'],
 };
@@ -25,9 +25,16 @@ export const analyzeImage = async (base64Image: string, mimeType: string): Promi
     inlineData: { data: base64Image, mimeType },
   };
   const textPart = {
-    text: `Analyze this image. Identify if there is a food item present. 
-- If food is present: Identify the food item. Determine if it is fresh or spoiled. If you are unsure, state that. Provide a detailed explanation for your assessment. If you are unsure, also provide detailed advice on how to check for spoilage using smell, texture, and visual cues. 
-- If no food is present: Set 'foodName' to 'No food detected', 'isSpoiled' to 'N/A', and provide an explanation for what you see in the image instead.
+    text: `Analyze this image with extreme care, as if you were inspecting it for someone who is very cautious about food safety. The food might be on the verge of spoiling.
+- If food is present: Identify the food item. Determine its freshness based on the following detailed classifications:
+  - 'Fresh': The item appears to be in perfect or near-perfect condition. No signs of aging or spoilage.
+  - 'Still Good': The item shows minor signs of aging that don't affect safety, like slight wilting or minor blemishes. It's safe to eat but not at its peak.
+  - 'Eat Soon': The item shows early but definite signs of spoilage, such as small soft spots, minor discoloration, or initial stages of wrinkling. It should be consumed very soon.
+  - 'Spoiled': The item has clear and significant signs of spoilage like mold, widespread discoloration, slimy texture, or severe wilting/decay. It is not safe to eat.
+  - 'Unsure': You cannot make a confident assessment due to image quality, angle, or ambiguity.
+- Provide a detailed explanation for your assessment, pointing out specific visual evidence from the image.
+- If you classify it as 'Unsure' or 'Eat Soon', provide detailed advice on how to check for spoilage using other senses (smell, texture).
+- If no food is present: Set 'foodName' to 'No food detected', 'isSpoiled' to 'N/A', and explain what you see in the image instead.
 Respond in the requested JSON format.`,
   };
 
