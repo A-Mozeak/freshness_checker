@@ -36,7 +36,8 @@ const App: React.FC = () => {
       const analysis = await analyzeImage(base64Image, mimeType);
       setAnalysisResult(analysis);
       
-      if (analysis && analysis.foodName) {
+      // Only proceed if food was actually detected
+      if (analysis && analysis.isSpoiled !== 'N/A') {
         setLoadingMessage(`Generating images & checking recalls for ${analysis.foodName}...`);
         
         const [images, recalls] = await Promise.all([
@@ -46,6 +47,10 @@ const App: React.FC = () => {
         
         setSpoiledImages(images);
         setRecallInfo(recalls);
+      } else {
+        // Clear previous results if no food is detected on a subsequent run
+        setSpoiledImages([]);
+        setRecallInfo([]);
       }
       
       setShowResults(true);

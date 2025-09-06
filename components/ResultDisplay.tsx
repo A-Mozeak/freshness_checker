@@ -39,6 +39,22 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ analysis, spoiledImages, 
       default: return 'text-slate-400 border-slate-400';
     }
   };
+  
+  if (analysis.isSpoiled === 'N/A') {
+    return (
+      <div className="w-full max-w-4xl mx-auto space-y-8 animate-fade-in">
+        <div className="bg-slate-800 p-6 rounded-xl shadow-lg text-center">
+          <h2 className="text-2xl font-bold text-yellow-300 mb-4">No Food Detected</h2>
+          <p className="text-slate-300 mb-6">{analysis.explanation}</p>
+          <p className="text-slate-400 mb-6">Please try again with a clearer picture. Ensure the food item is well-lit and in focus.</p>
+          <button onClick={onReset} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-6 rounded-lg transition-transform transform hover:scale-105">
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8 animate-fade-in">

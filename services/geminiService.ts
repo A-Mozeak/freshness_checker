@@ -12,10 +12,10 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const analysisSchema = {
   type: Type.OBJECT,
   properties: {
-    foodName: { type: Type.STRING, description: "The name of the food item in the image." },
-    isSpoiled: { type: Type.STRING, enum: ['Fresh', 'Spoiled', 'Unsure'], description: "The freshness status of the food." },
-    explanation: { type: Type.STRING, description: "A detailed explanation of the freshness assessment." },
-    sensoryChecks: { type: Type.STRING, description: "If unsure, detailed advice on checking for spoilage using smell, texture, and visual cues (not from the image)." },
+    foodName: { type: Type.STRING, description: "The name of the food item in the image, or 'No food detected' if none is found." },
+    isSpoiled: { type: Type.STRING, enum: ['Fresh', 'Spoiled', 'Unsure', 'N/A'], description: "The freshness status of the food, or 'N/A' if no food is detected." },
+    explanation: { type: Type.STRING, description: "A detailed explanation of the freshness assessment, or why no food was detected." },
+    sensoryChecks: { type: Type.STRING, description: "If unsure, detailed advice on checking for spoilage using smell, texture, and visual cues (not from the image). If no food is detected, this can be an empty string." },
   },
   required: ['foodName', 'isSpoiled', 'explanation', 'sensoryChecks'],
 };
@@ -25,7 +25,10 @@ export const analyzeImage = async (base64Image: string, mimeType: string): Promi
     inlineData: { data: base64Image, mimeType },
   };
   const textPart = {
-    text: `Analyze this image of food. Identify the food item. Determine if it is fresh or spoiled. If you are unsure, state that. Provide a detailed explanation for your assessment. If you are unsure, also provide detailed advice on how to check for spoilage using smell, texture, and visual cues. Respond in the requested JSON format.`,
+    text: `Analyze this image. Identify if there is a food item present. 
+- If food is present: Identify the food item. Determine if it is fresh or spoiled. If you are unsure, state that. Provide a detailed explanation for your assessment. If you are unsure, also provide detailed advice on how to check for spoilage using smell, texture, and visual cues. 
+- If no food is present: Set 'foodName' to 'No food detected', 'isSpoiled' to 'N/A', and provide an explanation for what you see in the image instead.
+Respond in the requested JSON format.`,
   };
 
   const response: GenerateContentResponse = await ai.models.generateContent({

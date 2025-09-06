@@ -1,7 +1,7 @@
 
 export interface AnalysisResult {
   foodName: string;
-  isSpoiled: 'Fresh' | 'Spoiled' | 'Unsure';
+  isSpoiled: 'Fresh' | 'Spoiled' | 'Unsure' | 'N/A';
   explanation: string;
   sensoryChecks: string;
 }
