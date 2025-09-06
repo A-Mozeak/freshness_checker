@@ -59,7 +59,7 @@ export const generateSpoiledImages = async (foodName: string): Promise<string[]>
         Also, only show one type of spoilage per image (e.g. one image shows mold, one image shows sliminess, one image shows discoloration, etc. depending on the way that the particular food spoils).
         Include examples of food that has gone bad but is not in the extreme stages of spoilage.`,
         config: {
-            numberOfImages: 3,
+            numberOfImages: 2,
             outputMimeType: 'image/jpeg',
             aspectRatio: '1:1',
         },

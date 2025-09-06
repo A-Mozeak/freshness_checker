@@ -17,6 +17,7 @@ const App: React.FC = () => {
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [userImage, setUserImage] = useState<string | null>(null);
   
   const { addFoodItem, removeFoodItem, getNotifications } = useNotifications();
   const [notifications, setNotifications] = useState<FoodItem[]>([]);
@@ -30,6 +31,7 @@ const App: React.FC = () => {
     setLoading(true);
     setError(null);
     setShowResults(false);
+    setUserImage(`data:${mimeType};base64,${base64Image}`);
     
     try {
       setLoadingMessage('Analyzing image for freshness...');
@@ -69,6 +71,7 @@ const App: React.FC = () => {
       setShowResults(false);
       setError(null);
       setLoading(false);
+      setUserImage(null);
   };
 
   return (
@@ -102,6 +105,7 @@ const App: React.FC = () => {
             analysis={analysisResult}
             spoiledImages={spoiledImages}
             recalls={recallInfo}
+            userImage={userImage}
             onSetReminder={addFoodItem}
             onReset={resetState}
           />

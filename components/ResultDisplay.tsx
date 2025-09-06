@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { AnalysisResult, FdaRecall, StorageAdvice } from '../types';
 import { getSpoilageDate, getStorageAdvice } from '../services/geminiService';
@@ -7,11 +6,37 @@ interface ResultDisplayProps {
   analysis: AnalysisResult;
   spoiledImages: string[];
   recalls: FdaRecall[];
+  userImage: string | null;
   onSetReminder: (name: string, date: string) => void;
   onReset: () => void;
 }
 
-const ResultDisplay: React.FC<ResultDisplayProps> = ({ analysis, spoiledImages, recalls, onSetReminder, onReset }) => {
+// Helper component to highlight text
+const HighlightText: React.FC<{ text: string, highlight: string }> = ({ text, highlight }) => {
+  if (!highlight.trim() || !text) {
+    return <>{text}</>;
+  }
+  // Escape special characters for regex
+  const escapedHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escapedHighlight})`, 'gi');
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <strong key={i} className="bg-yellow-500/30 text-yellow-200 px-1 rounded">
+            {part}
+          </strong>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
+};
+
+
+const ResultDisplay: React.FC<ResultDisplayProps> = ({ analysis, spoiledImages, recalls, userImage, onSetReminder, onReset }) => {
   const [purchaseDate, setPurchaseDate] = useState('');
   const [spoilageEstimate, setSpoilageEstimate] = useState<{ start: string; end: string } | null>(null);
   const [loadingEstimate, setLoadingEstimate] = useState(false);
@@ -177,13 +202,24 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ analysis, spoiledImages, 
           )}
       </div>
 
-      {/* Spoiled Examples */}
-      {spoiledImages.length > 0 && (
+      {/* Visual Comparison */}
+      {/* FIX: Removed redundant `analysis.isSpoiled !== 'N/A'` check. This is always true at this point in the code due to the early return for 'N/A' cases. */}
+      {(userImage || spoiledImages.length > 0) && (
         <div className="bg-slate-800 p-6 rounded-xl shadow-lg">
-          <h3 className="text-xl font-bold text-cyan-300 mb-4">Examples of Spoiled {analysis.foodName}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <h3 className="text-xl font-bold text-cyan-300 mb-4">Visual Comparison</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-start">
+            {/* FIX: Removed redundant `analysis.isSpoiled !== 'N/A'` check. */}
+            {userImage && (
+              <div className="text-center">
+                <img src={userImage} alt="User uploaded photo" className="rounded-lg object-cover w-full h-auto aspect-square" />
+                <p className="mt-2 font-semibold text-slate-300">Your Photo</p>
+              </div>
+            )}
             {spoiledImages.map((src, index) => (
-              <img key={index} src={src} alt={`Spoiled ${analysis.foodName} example ${index + 1}`} className="rounded-lg object-cover w-full h-auto"/>
+              <div key={index} className="text-center">
+                <img src={src} alt={`Spoiled ${analysis.foodName} example ${index + 1}`} className="rounded-lg object-cover w-full h-auto aspect-square" />
+                <p className="mt-2 font-semibold text-slate-300">{`Spoiled Example ${index + 1}`}</p>
+              </div>
             ))}
           </div>
         </div>
@@ -196,7 +232,9 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ analysis, spoiledImages, 
           <ul className="space-y-4">
             {recalls.map((recall, index) => (
               <li key={index} className="p-4 bg-slate-700 rounded-lg">
-                <p className="font-bold text-red-400">{recall.product_description}</p>
+                <p className="font-bold text-red-400">
+                   <HighlightText text={recall.product_description} highlight={analysis.foodName.split(' ')[0]} />
+                </p>
                 <p><span className="font-semibold text-slate-300">Reason:</span> {recall.reason_for_recall}</p>
                 <p><span className="font-semibold text-slate-300">Recalled by:</span> {recall.recalling_firm}</p>
                 <p><span className="font-semibold text-slate-300">Date:</span> {new Date(recall.recall_initiation_date.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')).toLocaleDateString()}</p>
