@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import type { GenerateContentResponse } from "@google/genai";
-import type { AnalysisResult } from '../types';
+import type { AnalysisResult, StorageAdvice } from '../types';
 
 if (!process.env.API_KEY) {
   throw new Error("API_KEY environment variable not set");
@@ -53,9 +53,13 @@ Respond in the requested JSON format.`,
 export const generateSpoiledImages = async (foodName: string): Promise<string[]> => {
     const response = await ai.models.generateImages({
         model: 'imagen-4.0-generate-001',
-        prompt: `A realistic, high-quality photo of a spoiled ${foodName}. Focus on the signs of spoilage like mold, discoloration, or wilting.`,
+        prompt: `A realistic, high-quality photo of a spoiled ${foodName}. Focus on the signs of spoilage like mold, discoloration, or wilting. 
+        All signs of spoilage should be relevant to the spoiled food, e.g. don't show green mold if the food commonly has white mold. 
+        Also, include an example of spoilage that doesn't show mold if possible (e.g. it has a slimy or mushy texture; make sure these look realistic and not overdone). 
+        Also, only show one type of spoilage per image (e.g. one image shows mold, one image shows sliminess, one image shows discoloration, etc. depending on the way that the particular food spoils).
+        Include examples of food that has gone bad but is not in the extreme stages of spoilage.`,
         config: {
-            numberOfImages: 2,
+            numberOfImages: 3,
             outputMimeType: 'image/jpeg',
             aspectRatio: '1:1',
         },
@@ -90,5 +94,39 @@ export const getSpoilageDate = async (foodName: string, purchaseDate: string): P
     } catch(e) {
         console.error("Failed to parse spoilage date JSON:", response.text, e);
         throw new Error("Could not get spoilage date estimate.");
+    }
+};
+
+const storageAdviceSchema = {
+    type: Type.OBJECT,
+    properties: {
+        isOptimal: { type: Type.BOOLEAN, description: "Is the user's storage method the optimal one?" },
+        optimalMethod: { type: Type.STRING, description: "A detailed description of the optimal storage method for the food item." },
+        shelfLifeExtension: { type: Type.STRING, description: "An estimate of how much longer the food's freshness can be extended by using the optimal method. E.g., 'This can extend its freshness by an additional 2-3 days.' If the method is already optimal, state that." },
+    },
+    required: ['isOptimal', 'optimalMethod', 'shelfLifeExtension'],
+};
+
+export const getStorageAdvice = async (foodName: string, userStorageMethod: string): Promise<StorageAdvice> => {
+    const prompt = `The user is storing "${foodName}" "${userStorageMethod}".
+    1. Is this the optimal storage method?
+    2. What is the best way to store "${foodName}" to maximize its freshness?
+    3. If the user's method is not optimal, estimate how much longer the food might last if switched to the optimal method.
+    Respond in the requested JSON format.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: storageAdviceSchema
+        }
+    });
+
+    try {
+        return JSON.parse(response.text);
+    } catch (e) {
+        console.error("Failed to parse storage advice JSON:", response.text, e);
+        throw new Error("Could not get storage advice.");
     }
 };

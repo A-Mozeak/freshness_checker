@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import type { AnalysisResult, FdaRecall } from '../types';
-import { getSpoilageDate } from '../services/geminiService';
+import type { AnalysisResult, FdaRecall, StorageAdvice } from '../types';
+import { getSpoilageDate, getStorageAdvice } from '../services/geminiService';
 
 interface ResultDisplayProps {
   analysis: AnalysisResult;
@@ -15,14 +15,47 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ analysis, spoiledImages, 
   const [purchaseDate, setPurchaseDate] = useState('');
   const [spoilageEstimate, setSpoilageEstimate] = useState<{ start: string; end: string } | null>(null);
   const [loadingEstimate, setLoadingEstimate] = useState(false);
+  const [spoilageMessage, setSpoilageMessage] = useState<string | null>(null);
+  const [messageType, setMessageType] = useState<'info' | 'warning' | 'danger'>('info');
+  const [showStorageQuery, setShowStorageQuery] = useState(false);
+  const [userStorageMethod, setUserStorageMethod] = useState('');
+  const [storageAdvice, setStorageAdvice] = useState<StorageAdvice | null>(null);
+  const [loadingStorageAdvice, setLoadingStorageAdvice] = useState(false);
   
   const handleGetEstimate = async () => {
     if (!purchaseDate) return;
     setLoadingEstimate(true);
+    // Reset states for a new estimation
+    setSpoilageEstimate(null);
+    setSpoilageMessage(null);
+    setShowStorageQuery(false);
+    setStorageAdvice(null);
+    setUserStorageMethod('');
+    setMessageType('info');
+
     try {
       const estimate = await getSpoilageDate(analysis.foodName, purchaseDate);
       setSpoilageEstimate({ start: estimate.startDate, end: estimate.endDate });
       onSetReminder(analysis.foodName, estimate.endDate);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const endDate = new Date(estimate.endDate);
+      
+      const timeDiff = endDate.getTime() - today.getTime();
+      const dayDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+      if (dayDiff < 0) {
+        setMessageType('danger');
+        setSpoilageMessage("This item is past its estimated spoilage date. For your safety, it's best to dispose of it.");
+      } else if (dayDiff <= 7) {
+        setMessageType('warning');
+        setSpoilageMessage(`This item is nearing its spoilage date.`);
+        setShowStorageQuery(true);
+      } else {
+        setMessageType('info');
+        setSpoilageMessage(`This item looks good for a while!`);
+      }
     } catch (error) {
       console.error("Error getting spoilage estimate:", error);
       alert("Could not retrieve a spoilage estimate.");
@@ -30,6 +63,22 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ analysis, spoiledImages, 
       setLoadingEstimate(false);
     }
   };
+  
+  const handleGetStorageAdvice = async () => {
+    if (!userStorageMethod) return;
+    setLoadingStorageAdvice(true);
+    setStorageAdvice(null);
+    try {
+      const advice = await getStorageAdvice(analysis.foodName, userStorageMethod);
+      setStorageAdvice(advice);
+    } catch (error) {
+      console.error("Error getting storage advice:", error);
+      alert("Could not retrieve storage advice.");
+    } finally {
+      setLoadingStorageAdvice(false);
+    }
+  };
+
 
   const getStatusColor = () => {
     switch(analysis.isSpoiled) {
@@ -84,11 +133,47 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ analysis, spoiledImages, 
                   {loadingEstimate ? 'Estimating...' : 'Get Spoilage Estimate'}
               </button>
           </div>
-          {spoilageEstimate && (
-              <div className="mt-4 p-4 bg-slate-700 rounded-lg">
-                  <p className="text-green-300 font-semibold">Estimated to be best by: <span className="font-bold">{spoilageEstimate.start}</span> to <span className="font-bold">{spoilageEstimate.end}</span>.</p>
-                  <p className="text-slate-300 text-sm mt-1">A reminder has been set for you!</p>
-              </div>
+          {spoilageMessage && (
+            <div className={`mt-4 p-4 rounded-lg border ${
+                messageType === 'danger' ? 'bg-red-900/50 border-red-500 text-red-300' :
+                messageType === 'warning' ? 'bg-yellow-900/50 border-yellow-500 text-yellow-300' :
+                'bg-slate-700 border-slate-600 text-slate-300'
+            }`}>
+                <p className="font-semibold">{spoilageMessage}</p>
+                {spoilageEstimate && messageType !== 'danger' && (
+                    <p className="text-sm mt-1">Estimated spoilage date range: {spoilageEstimate.start} to {spoilageEstimate.end}. A reminder has been set!</p>
+                )}
+            </div>
+          )}
+          {showStorageQuery && !storageAdvice && (
+            <div className="mt-4 p-4 bg-slate-700 rounded-lg space-y-3 animate-fade-in">
+                <p className="font-semibold text-yellow-300">How have you been storing the {analysis.foodName}?</p>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <select value={userStorageMethod} onChange={(e) => setUserStorageMethod(e.target.value)} className="bg-slate-600 text-white p-2 rounded-md w-full focus:ring-2 focus:ring-cyan-500 focus:outline-none border-0">
+                        <option value="">Select storage method...</option>
+                        <option value="On the counter">On the counter</option>
+                        <option value="In the pantry">In the pantry</option>
+                        <option value="In the refrigerator">In the refrigerator</option>
+                        <option value="In the freezer">In the freezer</option>
+                    </select>
+                    <button onClick={handleGetStorageAdvice} disabled={!userStorageMethod || loadingStorageAdvice} className="bg-violet-600 hover:bg-violet-500 disabled:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg w-full sm:w-auto whitespace-nowrap">
+                        {loadingStorageAdvice ? 'Getting advice...' : 'Get Storage Advice'}
+                    </button>
+                </div>
+            </div>
+          )}
+          {storageAdvice && (
+            <div className="mt-4 p-4 bg-slate-700 rounded-lg animate-fade-in">
+                {storageAdvice.isOptimal ? (
+                    <p className="text-green-300 font-bold">✓ Great! You are using the optimal storage method.</p>
+                ) : (
+                    <>
+                        <p className="font-bold text-yellow-300 mb-2">Storage Tip:</p>
+                        <p className="text-slate-300">{storageAdvice.optimalMethod}</p>
+                        <p className="text-cyan-300 font-semibold mt-3">{storageAdvice.shelfLifeExtension}</p>
+                    </>
+                )}
+            </div>
           )}
       </div>
 

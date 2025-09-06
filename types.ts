@@ -21,3 +21,9 @@ export interface FoodItem {
   name: string;
   spoilageDate: string;
 }
+
+export interface StorageAdvice {
+  isOptimal: boolean;
+  optimalMethod: string;
+  shelfLifeExtension: string;
+}
