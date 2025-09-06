@@ -14,6 +14,7 @@ export interface FdaRecall {
   city: string;
   state: string;
   country: string;
+  recall_number: string;
 }
 
 export interface FoodItem {

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { AnalysisResult, FdaRecall, StorageAdvice } from '../types';
 import { getSpoilageDate, getStorageAdvice } from '../services/geminiService';
@@ -33,6 +34,42 @@ const HighlightText: React.FC<{ text: string, highlight: string }> = ({ text, hi
       )}
     </>
   );
+};
+
+const ExternalLinkIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+    </svg>
+);
+
+const smartTruncate = (description: string, highlight: string, maxLength: number = 250): string => {
+    if (description.length <= maxLength) {
+        return description;
+    }
+
+    const highlightTerm = highlight.toLowerCase();
+    const descriptionLower = description.toLowerCase();
+    const highlightIndex = descriptionLower.indexOf(highlightTerm);
+
+    // Case 1: Highlight not found or is clearly visible in a simple truncation.
+    // We check if the highlight term starts well before the maxLength limit.
+    if (highlightIndex === -1 || highlightIndex < maxLength - highlightTerm.length - 20) { // 20 chars for context
+        return description.substring(0, maxLength).trim() + '...';
+    }
+
+    // Case 2: Highlight is further in. Create a "sliding window".
+    const contextBefore = 30; // How many characters to show before the highlight term.
+    const startIndex = Math.max(0, highlightIndex - contextBefore);
+    
+    // Create the snippet starting with '...'
+    const snippet = '...' + description.substring(startIndex);
+
+    // Now, truncate this new string (snippet) if it's still too long.
+    if (snippet.length > maxLength) {
+        return snippet.substring(0, maxLength).trim() + '...';
+    }
+    
+    return snippet;
 };
 
 
@@ -203,12 +240,10 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ analysis, spoiledImages, 
       </div>
 
       {/* Visual Comparison */}
-      {/* FIX: Removed redundant `analysis.isSpoiled !== 'N/A'` check. This is always true at this point in the code due to the early return for 'N/A' cases. */}
       {(userImage || spoiledImages.length > 0) && (
         <div className="bg-slate-800 p-6 rounded-xl shadow-lg">
           <h3 className="text-xl font-bold text-cyan-300 mb-4">Visual Comparison</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-start">
-            {/* FIX: Removed redundant `analysis.isSpoiled !== 'N/A'` check. */}
             {userImage && (
               <div className="text-center">
                 <img src={userImage} alt="User uploaded photo" className="rounded-lg object-cover w-full h-auto aspect-square" />
@@ -230,14 +265,27 @@ const ResultDisplay: React.FC<ResultDisplayProps> = ({ analysis, spoiledImages, 
         <h3 className="text-xl font-bold text-cyan-300 mb-4">FDA Recall Information</h3>
         {recalls.length > 0 ? (
           <ul className="space-y-4">
-            {recalls.map((recall, index) => (
-              <li key={index} className="p-4 bg-slate-700 rounded-lg">
-                <p className="font-bold text-red-400">
-                   <HighlightText text={recall.product_description} highlight={analysis.foodName.split(' ')[0]} />
-                </p>
-                <p><span className="font-semibold text-slate-300">Reason:</span> {recall.reason_for_recall}</p>
-                <p><span className="font-semibold text-slate-300">Recalled by:</span> {recall.recalling_firm}</p>
-                <p><span className="font-semibold text-slate-300">Date:</span> {new Date(recall.recall_initiation_date.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')).toLocaleDateString()}</p>
+            {recalls.map((recall) => (
+              <li key={recall.recall_number} className="bg-slate-700 rounded-lg hover:bg-slate-600/50 transition-colors">
+                <a
+                  href={`https://www.google.com/search?q=site:fda.gov+${encodeURIComponent(analysis.foodName)}+${encodeURIComponent(recall.recalling_firm)}+${encodeURIComponent(recall.reason_for_recall)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block p-4"
+                  aria-label={`View details for recall of ${recall.product_description}`}
+                >
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex-1">
+                      <p className="font-bold text-red-400">
+                         <HighlightText text={smartTruncate(recall.product_description, analysis.foodName.split(' ')[0])} highlight={analysis.foodName.split(' ')[0]} />
+                      </p>
+                      <p className="text-sm mt-2"><span className="font-semibold text-slate-300">Reason:</span> {recall.reason_for_recall}</p>
+                      <p className="text-sm"><span className="font-semibold text-slate-300">Recalled by:</span> {recall.recalling_firm}</p>
+                      <p className="text-sm"><span className="font-semibold text-slate-300">Date:</span> {new Date(recall.recall_initiation_date.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')).toLocaleDateString()}</p>
+                    </div>
+                    <ExternalLinkIcon />
+                  </div>
+                </a>
               </li>
             ))}
           </ul>
