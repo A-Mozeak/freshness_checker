@@ -34,7 +34,25 @@ const CameraView: React.FC<{
                     }
                 } catch (fallbackErr) {
                      console.error("Error accessing any camera:", fallbackErr);
-                     setError("Could not access camera. Please check permissions and ensure your browser supports this feature.");
+                     if (fallbackErr instanceof DOMException) {
+                        switch(fallbackErr.name) {
+                            case 'NotFoundError':
+                            case 'DevicesNotFoundError':
+                                setError("No camera found. Please ensure a camera is connected and enabled.");
+                                break;
+                            case 'NotAllowedError':
+                            case 'PermissionDeniedError':
+                                setError("Camera access was denied. Please allow camera permissions in your browser settings.");
+                                break;
+                            case 'NotReadableError':
+                                setError("The camera is currently in use by another application.");
+                                break;
+                            default:
+                                setError("Could not access camera. Please check permissions and ensure your browser supports this feature.");
+                        }
+                     } else {
+                        setError("An unexpected error occurred while trying to access the camera.");
+                     }
                 }
             }
         };
@@ -64,11 +82,11 @@ const CameraView: React.FC<{
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center z-50 p-4">
             {error ? (
-                 <div className="bg-slate-800 p-6 rounded-xl shadow-lg text-center">
-                    <p className="text-red-400 mb-4">{error}</p>
-                    <button onClick={onClose} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg">
+                 <div className="bg-white p-6 rounded-xl shadow-lg text-center">
+                    <p className="text-red-600 mb-4">{error}</p>
+                    <button onClick={onClose} className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg">
                         Close
                     </button>
                 </div>
@@ -76,10 +94,10 @@ const CameraView: React.FC<{
                 <>
                     <video ref={videoRef} autoPlay playsInline className="w-full max-w-2xl h-auto rounded-lg shadow-2xl mb-4"></video>
                     <div className="flex gap-4">
-                        <button onClick={handleCapture} className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-6 rounded-full text-lg transition-transform transform hover:scale-105">
+                        <button onClick={handleCapture} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full text-lg transition-transform transform hover:scale-105">
                             Capture
                         </button>
-                        <button onClick={onClose} className="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-full text-lg transition-transform transform hover:scale-105">
+                        <button onClick={onClose} className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full text-lg transition-transform transform hover:scale-105">
                             Cancel
                         </button>
                     </div>
@@ -93,6 +111,25 @@ const CameraView: React.FC<{
 const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelect, disabled }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isCameraSupported, setIsCameraSupported] = useState(false);
+
+  useEffect(() => {
+    const checkCameraSupport = async () => {
+      if (navigator.mediaDevices?.enumerateDevices) {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const hasCamera = devices.some(device => device.kind === 'videoinput');
+          setIsCameraSupported(hasCamera);
+        } catch (error) {
+          console.error("Error enumerating devices:", error);
+          setIsCameraSupported(false);
+        }
+      } else {
+        setIsCameraSupported(false);
+      }
+    };
+    checkCameraSupport();
+  }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -112,13 +149,17 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelect, disabled }
   }
 
   const triggerFileInput = () => fileInputRef.current?.click();
-  const openCamera = () => setIsCameraOpen(true);
+  const openCamera = () => {
+    if (isCameraSupported) {
+      setIsCameraOpen(true);
+    }
+  };
 
   return (
     <>
-      <div className="bg-slate-800 p-6 rounded-xl shadow-lg w-full max-w-md mx-auto">
-        <h2 className="text-xl font-bold text-center text-cyan-300 mb-4">Check Your Food's Freshness</h2>
-        <p className="text-slate-400 text-center mb-6">Upload or take a photo of a food item to get an AI-powered analysis.</p>
+      <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-md mx-auto border border-gray-200">
+        <h2 className="text-xl font-bold text-center text-green-700 mb-4">Check Your Food's Freshness</h2>
+        <p className="text-gray-600 text-center mb-6">Upload or take a photo of a food item to get an AI-powered analysis.</p>
         <div className="flex flex-col sm:flex-row gap-4">
           <input
             type="file"
@@ -130,16 +171,17 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelect, disabled }
           />
           <button
             onClick={openCamera}
-            disabled={disabled}
-            className="flex-1 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center gap-2"
+            disabled={disabled || !isCameraSupported}
+            className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center gap-2"
             aria-label="Take a photo with your camera"
+            title={!isCameraSupported ? "No camera detected on this device" : "Take a photo"}
           >
             <CameraIcon /> Take Photo
           </button>
           <button
             onClick={triggerFileInput}
             disabled={disabled}
-            className="flex-1 bg-violet-600 hover:bg-violet-500 disabled:bg-slate-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center gap-2"
+            className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center gap-2"
             aria-label="Upload an image from your device"
           >
             <UploadIcon /> Upload Image

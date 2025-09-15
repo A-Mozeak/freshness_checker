@@ -1,4 +1,4 @@
-
+/*
 import React from 'react';
 import type { FoodItem } from '../types';
 
@@ -30,3 +30,4 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({ notifications, 
 };
 
 export default NotificationBanner;
+*/
