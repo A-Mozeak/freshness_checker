@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Freshness Checker AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
-  <script type="importmap">
+    <script type="importmap">
 {
   "imports": {
     "react/": "https://aistudiocdn.com/react@^19.1.1/",
@@ -19,8 +19,21 @@
   }
 }
 </script>
+    <style>
+      #background-svg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        z-index: -1;
+        opacity: 0.05;
+        object-fit: cover;
+      }
+    </style>
 </head>
-  <body class="bg-slate-900 text-white">
+  <body class="bg-stone-50 text-gray-800">
+    <svg id="background-svg" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="a" patternUnits="userSpaceOnUse" width="100" height="100" patternTransform="scale(1.5) rotate(0)"><rect x="0" y="0" width="100%" height="100%" fill="hsla(0,0%,100%,0)"/><path d="M12.5 12.5S25 0 37.5 0 50 12.5 50 12.5s12.5 12.5 12.5 25S50 50 50 50s-12.5 12.5-25 12.5S12.5 50 12.5 50s-12.5-12.5-12.5-25S12.5 12.5 12.5 12.5zm10 20c-5-2.5-5-7.5 0-10M37.5 32.5c5-2.5 5-7.5 0-10M25 45V32.5M12.5 37.5h5v-5h-5zm30-10h-5v5h5zm-25 0h-5v5h5zm15-5a5 5 0 11-10 0 5 5 0 0110 0z" stroke-linecap="round" stroke-linejoin="round" stroke="hsl(139.3, 40.5%, 42.4%)" fill="none" stroke-width="1.5"/><path d="M-37.5 62.5S-25 50 -12.5 50s12.5 12.5 12.5 12.5 12.5 12.5 12.5 25S-12.5 100 -12.5 100s-12.5 12.5-25 12.5S-50 100-50 100s-12.5-12.5-12.5-25S-37.5 62.5-37.5 62.5zm10 20c-5-2.5-5-7.5 0-10M12.5 82.5c5-2.5 5-7.5 0-10M-12.5 95V82.5M-25 87.5h5v-5h-5zm30-10h-5v5h5zm-25 0h-5v5h5zm15-5a5 5 0 11-10 0 5 5 0 0110 0zM62.5 62.5S75 50 87.5 50 100 62.5 100 62.5s12.5 12.5 12.5 25S100 100 100 100s-12.5 12.5-25 12.5S62.5 100 62.5 100s-12.5-12.5-12.5-25S62.5 62.5 62.5 62.5zm10 20c-5-2.5-5-7.5 0-10M87.5 82.5c5-2.5 5-7.5 0-10M75 95V82.5M62.5 87.5h5v-5h-5zm30-10h-5v5h5zm-25 0h-5v5h5zm15-5a5 5 0 11-10 0 5 5 0 0110 0z" stroke-linecap="round" stroke-linejoin="round" stroke="hsl(139.3, 40.5%, 42.4%)" fill="none" stroke-width="1.5"/></pattern></defs><rect width="100%" height="100%" fill="url(#a)"/></svg>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
